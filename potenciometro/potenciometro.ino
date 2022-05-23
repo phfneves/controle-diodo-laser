@@ -108,7 +108,7 @@ void setupVariables() {
   
   float tempValue = selected_diodo.getMaxTempValue()/2;
   coarse_temp_value = (int8_t) tempValue;
-  fine_temp_value = extractFractionalPart(tempValue, FINE_CURRENT_DIGITS_RESOLUTION);
+  fine_temp_value = extractFractionalPart(tempValue, FINE_TEMP_DIGITS_RESOLUTION);
 }
 
 int extractFractionalPart(float value, uint8_t digits) {
@@ -194,8 +194,6 @@ void selectedValueChangeHandler() {
 
 void diodeSelectorSelected() {
   int16_t increaseValue = encoder->getValue();
-  Serial.print("Encoder Value: ");
-  Serial.println(increaseValue);
   if (increaseValue > 0) {
     selected_diodo_index += increaseValue;
     if (selected_diodo_index >= DIODO_LIST_SIZE) {
@@ -215,16 +213,14 @@ void diodeSelectorSelected() {
 
 void changeCoarseCurrentSelected() {
   int16_t increaseValue = encoder->getValue();
-  Serial.print("Encoder Value: ");
-  Serial.println(increaseValue);
   if (increaseValue > 0) {
-    if (!isCurrentGreaterOrEqualToMaxValue()) {
+    if (!isCurrentGreaterOrEqualToMaxValue(increaseValue)) {
         increaseCoarseCurrentByValue(increaseValue);
         Serial.print("Coarse Current Value: ");
         Serial.println(coarse_current_value);
     }
   } else if (increaseValue < 0) {
-    if (!isCurrentSmallerOrEqualToMinValue()) {
+    if (!isCurrentSmallerOrEqualToMinValue(increaseValue)) {
         increaseCoarseCurrentByValue(increaseValue);
         Serial.print("Coarse Current Value: ");
         Serial.println(coarse_current_value);
@@ -232,12 +228,12 @@ void changeCoarseCurrentSelected() {
   }
 }
 
-bool isCurrentGreaterOrEqualToMaxValue() {
-  return getCurrentValueComposed() >= selected_diodo.getMaxCurrentValue();
+bool isCurrentGreaterOrEqualToMaxValue(int16_t increaseValue) {
+  return (getCurrentValueComposed() + increaseValue) >= selected_diodo.getMaxCurrentValue();
 }
 
-bool isCurrentSmallerOrEqualToMinValue() {
-  return getCurrentValueComposed() <= selected_diodo.getMinCurrentValue();
+bool isCurrentSmallerOrEqualToMinValue(int16_t decreaseValue) {
+  return (getCurrentValueComposed() + decreaseValue) <= selected_diodo.getMinCurrentValue();
 }
 
 float getCurrentValueComposed() {
@@ -254,16 +250,14 @@ void increaseCoarseCurrentByValue(int16_t value) {
 
 void changeFineCurrentSelected() {
   int16_t increaseValue = encoder->getValue();
-  Serial.print("Encoder Value: ");
-  Serial.println(increaseValue);
   if (increaseValue > 0) {
-    if (!isCurrentGreaterOrEqualToMaxValue()) {
+    if (!isCurrentGreaterOrEqualToMaxValue(increaseValue/FINE_CURRENT_DIGITS_RESOLUTION)) {
         increaseFineCurrentByValue(increaseValue);
         Serial.print("Fine Current Value: ");
         Serial.println(fine_current_value);
     }
   } else if (increaseValue < 0) {
-    if (!isCurrentSmallerOrEqualToMinValue()) {
+    if (!isCurrentSmallerOrEqualToMinValue(increaseValue/FINE_CURRENT_DIGITS_RESOLUTION)) {
         increaseFineCurrentByValue(increaseValue);
         Serial.print("Fine Current Value: ");
         Serial.println(fine_current_value);
@@ -284,9 +278,63 @@ void increaseFineCurrentByValue(int16_t value) {
 }
 
 void changeCoarseTempSelected() {
-  
+  int16_t increaseValue = encoder->getValue();
+  if (increaseValue > 0) {
+    if (!isTempGreaterOrEqualToMaxValue(increaseValue)) {
+        increaseCoarseTempByValue(increaseValue);
+        Serial.print("Coarse Temp Value: ");
+        Serial.println(coarse_temp_value);
+    }
+  } else if (increaseValue < 0) {
+    if (!isTempSmallerOrEqualToMinValue(increaseValue)) {
+        increaseCoarseTempByValue(increaseValue);
+        Serial.print("Coarse Temp Value: ");
+        Serial.println(coarse_current_value);
+    }
+  }
+}
+
+bool isTempGreaterOrEqualToMaxValue(int16_t increaseValue) {
+  return (getTempValueComposed() + increaseValue) >= selected_diodo.getMaxTempValue();
+}
+
+bool isTempSmallerOrEqualToMinValue(int16_t decreaseValue) {
+  return (getTempValueComposed() + decreaseValue) <= selected_diodo.getMinTempValue();
+}
+
+float getTempValueComposed() {
+  return composeTwoIntInFloat(coarse_temp_value, fine_temp_value, FINE_TEMP_DIGITS_RESOLUTION);
+}
+
+void increaseCoarseTempByValue(int16_t value) {
+  coarse_temp_value += value;
 }
 
 void changeFineTempSelected() {
-  
+  int16_t increaseValue = encoder->getValue();
+  if (increaseValue > 0) {
+    if (!isTempGreaterOrEqualToMaxValue(increaseValue/FINE_TEMP_DIGITS_RESOLUTION)) {
+        increaseFineTempByValue(increaseValue);
+        Serial.print("Fine Temp Value: ");
+        Serial.println(fine_current_value);
+    }
+  } else if (increaseValue < 0) {
+    if (!isTempSmallerOrEqualToMinValue(increaseValue/FINE_CURRENT_DIGITS_RESOLUTION)) {
+        increaseFineTempByValue(increaseValue);
+        Serial.print("Fine Temp Value: ");
+        Serial.println(fine_current_value);
+    }
+  }
+}
+
+void increaseFineTempByValue(int16_t value) {
+  if (fine_temp_value >= FINE_TEMP_MAX_RESOLUTION_VALUE) {
+    fine_temp_value = 0;
+    increaseCoarseTempByValue(1);
+  } else if (fine_temp_value <= FINE_TEMP_MIN_RESOLUTION_VALUE) {
+    fine_temp_value = FINE_TEMP_MAX_RESOLUTION_VALUE;
+    increaseCoarseTempByValue(-1);
+  } else {
+    fine_temp_value += value;
+  }
 }

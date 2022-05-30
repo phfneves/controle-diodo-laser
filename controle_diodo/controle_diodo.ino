@@ -1,4 +1,4 @@
-
+#include <TFT_HX8357.h> // Hardware-specific library
 #include <ClickEncoder.h>
 #include <TimerOne.h>
 #include <math.h>
@@ -82,8 +82,19 @@ int8_t fine_current_value;
 int8_t coarse_temp_value;
 int8_t fine_temp_value;
 
+
+#define SCREEN_WIDTH 480
+#define SCREEN_HEIGHT 320
+#define BACKGROUND_COLOR 0xFFFF
+#define TEXT_COLOR 0x212121
+
+TFT_HX8357 display = TFT_HX8357();       // Invoke custom library
+
 void setup() {
-// put your setup code here, to run once:
+  // put your setup code here, to run once:
+  display.init();
+  display.setRotation(1); //orientação na horizontal
+  
   setupDiodoList();
 
   Serial.begin (9600);
@@ -123,7 +134,32 @@ void timerIsr() {
 void loop() {
   setEncoderButtonClickedHandler();
   selectedValueChangeHandler();
+  drawInterface();
 }
+
+bool reedraw = true;
+
+void drawInterface() {
+  if(reedraw) {
+    display.fillScreen(BACKGROUND_COLOR); //set background colour
+    display.drawLine(2*SCREEN_WIDTH/8, 0, 2*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
+    display.drawLine(5*SCREEN_WIDTH/8, 0, 5*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
+
+    display.setTextColor(TEXT_COLOR); display.setTextFont(4);  
+    
+    display.setCursor(25, 10);
+    display.println("Diodo");
+
+    display.setCursor((2*SCREEN_WIDTH/8) + 40, 10);
+    display.println("Corrente");
+
+    display.setCursor((5*SCREEN_WIDTH/8) + 17, 10);
+    display.println("Temperatura");
+
+    reedraw = false;
+  }
+}
+
 
 void setEncoderButtonClickedHandler() {
   ClickEncoder::Button b = encoder->getButton();

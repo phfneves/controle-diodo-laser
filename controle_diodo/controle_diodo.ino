@@ -68,13 +68,14 @@ const int8_t FINE_CURRENT_MIN_RESOLUTION_VALUE = 0;
 const int8_t FINE_TEMP_DIGITS_RESOLUTION = 2;
 const int8_t FINE_TEMP_MAX_RESOLUTION_VALUE = 99;
 const int8_t FINE_TEMP_MIN_RESOLUTION_VALUE = 0;
-const int8_t DIODO_LIST_SIZE = 3;
-Diodo diodoList[DIODO_LIST_SIZE];
-void setupDiodoList() {
-  diodoList[0] = Diodo("Diodo 1", 100.10, 10.10, 10.10, 1.01, 0.0, 0.0);
-  diodoList[1] = Diodo("Diodo 2", 200.20, 20.20, 20.20, 2.02, 0.0, 0.0);
-  diodoList[2] = Diodo("Diodo 3", 300.30, 30.30, 30.30, 3.03, 0.0, 0.0);
-}
+Diodo diodoList[] = {
+  Diodo("Diodo 1", 100.10, 10.10, 10.10, 1.01, 0.0, 0.0),
+  Diodo("Diodo 2", 200.20, 20.20, 20.20, 2.02, 0.0, 0.0),
+  Diodo("Diodo 3", 300.30, 30.30, 30.30, 3.03, 0.0, 0.0),
+  Diodo("Diodo 4", 300.30, 30.30, 30.30, 3.03, 0.0, 0.0),
+  Diodo("Diodo 5", 300.30, 30.30, 30.30, 3.03, 0.0, 0.0)
+};
+int8_t diodeListSize;
 int8_t selected_diodo_index;
 Diodo selected_diodo;
 int8_t coarse_current_value;
@@ -82,11 +83,20 @@ int8_t fine_current_value;
 int8_t coarse_temp_value;
 int8_t fine_temp_value;
 
-
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 320
+#define SCREEN_MARGINS 10
+#define SMALL_TEXT_FONT 1
+#define MEDIUM_TEXT_FONT 2
+#define LARGE_TEXT_FONT 4
+#define SMALL_TEXT_FONT_HEIGHT 8
+#define MEDIUM_TEXT_FONT_HEIGHT 16
+#define LARGE_TEXT_FONT_HEIGHT 26
 #define BACKGROUND_COLOR 0xFFFF
 #define TEXT_COLOR 0x212121
+#define SELECTED_COLOR 0x2196F3
+#define SELECTED_TEXT_COLOR 0x212121
+
 
 TFT_HX8357 display = TFT_HX8357();       // Invoke custom library
 
@@ -94,8 +104,6 @@ void setup() {
   // put your setup code here, to run once:
   display.init();
   display.setRotation(1); //orientação na horizontal
-  
-  setupDiodoList();
 
   Serial.begin (9600);
 
@@ -112,6 +120,7 @@ void setupVariables() {
   selected_state = NO_SELECTION_STATE;
   selected_diodo_index = 0;
   selected_diodo = diodoList[selected_diodo_index];
+  diodeListSize = sizeof(diodoList)/sizeof(diodoList[0]);
   
   float currentValue = selected_diodo.getMaxCurrentValue()/2;
   coarse_current_value = (int8_t) currentValue;
@@ -144,22 +153,60 @@ void drawInterface() {
     display.fillScreen(BACKGROUND_COLOR); //set background colour
     display.drawLine(2*SCREEN_WIDTH/8, 0, 2*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
     display.drawLine(5*SCREEN_WIDTH/8, 0, 5*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
-
-    display.setTextColor(TEXT_COLOR); display.setTextFont(4);  
     
-    display.setCursor(25, 10);
-    display.println("Diodo");
-
-    display.setCursor((2*SCREEN_WIDTH/8) + 40, 10);
-    display.println("Corrente");
-
-    display.setCursor((5*SCREEN_WIDTH/8) + 17, 10);
-    display.println("Temperatura");
+    drawDiodeList();
+    drawTitle((2*SCREEN_WIDTH/8) + 40, SCREEN_MARGINS, "Corrente");
+    drawTitle((5*SCREEN_WIDTH/8) + 17, SCREEN_MARGINS, "Temperatura");
+    int line = 0;
 
     reedraw = false;
   }
 }
 
+void drawDiodeList() {
+  drawTitle(25, SCREEN_MARGINS, "Diodo");
+  for(int i =0; i<diodeListSize; i++) {
+    drawDiodeNameByIndex(i);
+    if (i == selected_diodo_index)  {
+      drawSelectedDiodeArrowByIndex(i);
+      drawSelectedDiodeLineByIndex(i);
+    }
+  }
+}
+
+void drawTitle(int16_t x0, int16_t y0, char *title) {
+  display.setTextColor(TEXT_COLOR); display.setTextFont(LARGE_TEXT_FONT);  
+  display.setCursor(x0, y0);
+  display.println(title);
+}
+
+void drawDiodeNameByIndex(int16_t index) {
+  int16_t x0 = (SCREEN_MARGINS*1.5) + (MEDIUM_TEXT_FONT_HEIGHT/2);
+  int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT*1.5 + (MEDIUM_TEXT_FONT_HEIGHT*index);
+  display.setTextColor(TEXT_COLOR); display.setTextFont(MEDIUM_TEXT_FONT);
+  display.setCursor(x0, y0);
+  display.println(diodoList[index].getName());
+}
+
+void drawSelectedDiodeArrowByIndex(int16_t index) {
+  int16_t x0 = SCREEN_MARGINS;
+  int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT*1.5 + (MEDIUM_TEXT_FONT_HEIGHT*index);
+  drawSelectedArrow(x0, y0);
+}
+
+void drawSelectedDiodeLineByIndex(int16_t index){
+  int16_t x0 = (SCREEN_MARGINS*1.5) + (MEDIUM_TEXT_FONT_HEIGHT/2);
+  int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT*1.5 + (MEDIUM_TEXT_FONT_HEIGHT*(index+1));
+  int16_t x1 =  (2*SCREEN_WIDTH/8)- SCREEN_MARGINS;
+  display.drawLine(x0, y0, x1, y0, TEXT_COLOR);
+}
+
+void drawSelectedArrow(int16_t x0, int16_t y0){
+  int16_t x1 = x0 + (MEDIUM_TEXT_FONT_HEIGHT/2);
+  int16_t y1 = y0 + (MEDIUM_TEXT_FONT_HEIGHT/2);
+  int16_t y2 = y0 + MEDIUM_TEXT_FONT_HEIGHT;
+  display.fillTriangle(x0, y0, x1, y1, x0, y2, SELECTED_COLOR);
+}
 
 void setEncoderButtonClickedHandler() {
   ClickEncoder::Button b = encoder->getButton();
@@ -232,14 +279,14 @@ void diodeSelectorSelected() {
   int16_t increaseValue = encoder->getValue();
   if (increaseValue > 0) {
     selected_diodo_index += increaseValue;
-    if (selected_diodo_index >= DIODO_LIST_SIZE) {
+    if (selected_diodo_index >= diodeListSize) {
       selected_diodo_index = 0;
     }
     selected_diodo = diodoList[selected_diodo_index];
   } else if (increaseValue < 0) {
     selected_diodo_index += increaseValue;
     if (selected_diodo_index <= -1) {
-      selected_diodo_index = DIODO_LIST_SIZE -1;
+      selected_diodo_index = diodeListSize -1;
     }
     selected_diodo = diodoList[selected_diodo_index];
   }

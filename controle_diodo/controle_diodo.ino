@@ -5,7 +5,7 @@
 
 class Diodo {
 private:
-  String name;
+  char* name;
 
 private:
   float maxCurrent, minCurrent, maxTemp, minTemp, current_control_param_P, current_control_param_I, currentValue, tempValue;
@@ -14,7 +14,7 @@ public:
   Diodo() {}
 
 public:
-  Diodo(String name, float maxCurrent, float minCurrent, float maxTemp, float minTemp, float current_control_param_P, float current_control_param_I, float currentValue, float tempValue) {
+  Diodo(char* name, float maxCurrent, float minCurrent, float maxTemp, float minTemp, float current_control_param_P, float current_control_param_I, float currentValue, float tempValue) {
     this->name = name;
     this->maxCurrent = maxCurrent;
     this->minCurrent = minCurrent;
@@ -27,7 +27,7 @@ public:
   }
 
 public:
-  String getName() {
+  char* getName() {
     return this->name;
   }
 
@@ -111,7 +111,6 @@ Diodo diodoList[] = {
 };
 int8_t diodeListSize;
 int8_t selected_diodo_index;
-Diodo selected_diodo;
 
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 320
@@ -141,6 +140,9 @@ bool firstDraw = true;
 bool reedrawDiode = true;
 bool reedrawCurrent = true;
 bool reedrawTemp = true;
+bool blink = false;
+int16_t blinkCycles = 50;
+int16_t blinkCount = 0;
 
 TFT_HX8357 display = TFT_HX8357();  // Invoke custom library
 
@@ -161,14 +163,9 @@ void setup() {
 
 void setupVariables() {
   selected_state = NO_SELECTION_STATE;
-  updateCurrentAndTempValuesFromSelectedDiodeIndex(0);
-  diodeListSize = sizeof(diodoList) / sizeof(diodoList[0]);
-}
-
-void updateCurrentAndTempValuesFromSelectedDiodeIndex(int8_t index) {
-  selected_diodo_index = index;
-  selected_diodo = diodoList[selected_diodo_index];
+  selected_diodo_index = 0;
   reedrawDiode = true;
+  diodeListSize = sizeof(diodoList) / sizeof(diodoList[0]);
 }
 
 void timerIsr() {
@@ -184,8 +181,8 @@ void loop() {
 void drawInterface() {
   if (firstDraw) {
     display.fillScreen(BACKGROUND_COLOR);  //set background colour
-    //display.drawLine(2*SCREEN_WIDTH/8, 0, 2*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
-    //display.drawLine(5*SCREEN_WIDTH/8, 0, 5*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
+    // display.drawLine(2*SCREEN_WIDTH/8, 0, 2*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
+    // display.drawLine(5*SCREEN_WIDTH/8, 0, 5*SCREEN_WIDTH/8, SCREEN_HEIGHT, TEXT_COLOR);
   }
   drawDiodeList(firstDraw, (firstDraw || reedrawDiode));
   drawCurrentInterface(firstDraw, (firstDraw || reedrawDiode || reedrawCurrent));
@@ -196,25 +193,44 @@ void drawInterface() {
 
 void drawDiodeList(bool firstDraw, bool reedraw) {
   if (firstDraw) {
-    drawTitle(25, SCREEN_MARGINS, "Diodo");
+    drawTitle(25, SCREEN_MARGINS, "Diode");
   }
+  
+  blinkSelectedDiode();
+  
   if (reedraw) {
     clearDiodeListBackground();
     for (int i = 0; i < diodeListSize; i++) {
       drawDiodeNameByIndex(i);
       if (i == selected_diodo_index) {
-        drawSelectedDiodeArrowByIndex(i);
-        drawSelectedDiodeLineByIndex(i);
+        drawSelectedDiodeArrowByIndex(i, SELECTED_COLOR);
+        drawSelectedDiodeLineByIndex(i, TEXT_COLOR);
       }
     }
   }
 }
 
-void drawTitle(int16_t x0, int16_t y0, char *title) {
-  display.setTextColor(TEXT_COLOR);
-  display.setTextFont(LARGE_TEXT_FONT);
+void blinkSelectedDiode() {
+  if (selected_state == DIODO_SELECTION_STATE) {
+    if (blink) {
+      drawSelectedDiodeArrowByIndex(selected_diodo_index, BACKGROUND_COLOR);
+      drawSelectedDiodeLineByIndex(selected_diodo_index, BACKGROUND_COLOR);
+    } else {
+      drawSelectedDiodeArrowByIndex(selected_diodo_index, SELECTED_COLOR);
+      drawSelectedDiodeLineByIndex(selected_diodo_index, TEXT_COLOR);
+    }
+  }
+}
+
+void drawText(int16_t x0, int16_t y0, char *text, uint16_t color, uint8_t font) {
+  display.setTextColor(color);
+  display.setTextFont(font);
   display.setCursor(x0, y0);
-  display.println(title);
+  display.println(text);
+}
+
+void drawTitle(int16_t x0, int16_t y0, char *title) {
+  drawText(x0, y0, title, TEXT_COLOR, LARGE_TEXT_FONT);
 }
 
 void clearDiodeListBackground() {
@@ -224,30 +240,31 @@ void clearDiodeListBackground() {
 void drawDiodeNameByIndex(int16_t index) {
   int16_t x0 = (SCREEN_MARGINS * 1.5) + (MEDIUM_TEXT_FONT_HEIGHT / 2);
   int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT * 1.5 + (MEDIUM_TEXT_FONT_HEIGHT * index);
-  display.setTextColor(TEXT_COLOR);
-  display.setTextFont(MEDIUM_TEXT_FONT);
-  display.setCursor(x0, y0);
-  display.println(diodoList[index].getName());
+  drawText(x0, y0, diodoList[index].getName(), TEXT_COLOR, MEDIUM_TEXT_FONT);
 }
 
-void drawSelectedDiodeArrowByIndex(int16_t index) {
+void drawSelectedDiodeArrowByIndex(int16_t index, uint16_t color) {
   int16_t x0 = SCREEN_MARGINS;
   int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT * 1.5 + (MEDIUM_TEXT_FONT_HEIGHT * index);
-  drawSelectedArrow(x0, y0);
+  drawSelectedArrow(x0, y0, color);
 }
 
-void drawSelectedDiodeLineByIndex(int16_t index) {
+void drawSelectedDiodeLineByIndex(int16_t index, uint16_t color) {
   int16_t x0 = (SCREEN_MARGINS * 1.5) + (MEDIUM_TEXT_FONT_HEIGHT / 2);
   int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT * 1.5 + (MEDIUM_TEXT_FONT_HEIGHT * (index + 1));
   int16_t x1 = (2 * SCREEN_WIDTH / 8) - SCREEN_MARGINS;
-  display.drawLine(x0, y0, x1, y0, TEXT_COLOR);
+  drawSelectedLine(x0, y0, x1, color);
 }
 
-void drawSelectedArrow(int16_t x0, int16_t y0) {
+void drawSelectedLine(int16_t x0, int16_t y0, int16_t x1, uint16_t color) {
+  display.drawLine(x0, y0, x1, y0, color);
+}
+
+void drawSelectedArrow(int16_t x0, int16_t y0, uint16_t color) {
   int16_t x1 = x0 + (MEDIUM_TEXT_FONT_HEIGHT / 2);
   int16_t y1 = y0 + (MEDIUM_TEXT_FONT_HEIGHT / 2);
   int16_t y2 = y0 + MEDIUM_TEXT_FONT_HEIGHT;
-  display.fillTriangle(x0, y0, x1, y1, x0, y2, SELECTED_COLOR);
+  display.fillTriangle(x0, y0, x1, y1, x0, y2, color);
 }
 
 void drawCurrentInterface(bool firstDraw, bool reedraw) {
@@ -255,13 +272,116 @@ void drawCurrentInterface(bool firstDraw, bool reedraw) {
   int16_t r = (3 * SCREEN_WIDTH / 16) - (SCREEN_MARGINS * 2);
   int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT * 1.5 + r;
   if (firstDraw) {
-    drawTitle((2 * SCREEN_WIDTH / 8) + 40, SCREEN_MARGINS, "Corrente");
+    drawTitle((2 * SCREEN_WIDTH / 8) + 40, SCREEN_MARGINS, "Current");
     display.drawCircle(x0, y0, r, TEXT_COLOR);
   }
+
+  drawCurrentCoarseAndFineTextIndicator((x0-r-SCREEN_MARGINS), (y0+r), TEXT_COLOR);
+
   if (reedraw) {
     int16_t r1 = r + SCREEN_MARGINS;
-    ringMeter(selected_diodo.getCurrentValue(), selected_diodo.getMinCurrentValue(), selected_diodo.getMaxCurrentValue(), x0-r1, y0-r1, r1, " mA", GREEN2RED, FINE_CURRENT_DIGITS_RESOLUTION);
+    ringMeter(diodoList[selected_diodo_index].getCurrentValue(), diodoList[selected_diodo_index].getMinCurrentValue(), diodoList[selected_diodo_index].getMaxCurrentValue(), x0-r1, y0-r1, r1, " mA", GREEN2RED, FINE_CURRENT_DIGITS_RESOLUTION);
     reedrawCurrent = false;
+  }
+}
+
+void drawCurrentCoarseAndFineTextIndicator(int16_t x0, int16_t y0, uint16_t color) {
+  int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
+  int16_t y1 = y0 + SCREEN_MARGINS;
+
+  drawText(x1, y1, "Coarse A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
+  
+  int16_t x3 = x1 + 55 + (SCREEN_MARGINS * 2);
+  int16_t x4 = x3 + (SCREEN_MARGINS * 1.5);
+  drawText(x4, y1, "Fine A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
+
+  blinkSelectedCurrentCoarseAdjustment(x0, y1);
+  blinkSelectedCurrentFineAdjustment(x3, y1);
+}
+
+void blinkSelectedCurrentCoarseAdjustment(int16_t x0, int16_t y0) {
+  int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
+  int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT;
+  int16_t x2 = x1 + 55;
+  if (selected_state == CURRENT_COARSE_ADJUSTMENT_STATE) {
+    if (blink) {
+      drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+      drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
+    } else {
+      drawSelectedArrow(x0, y0, SELECTED_COLOR);
+      drawSelectedLine(x1, y1, x2, TEXT_COLOR);
+    }
+  } else {
+    drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+    drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
+  }
+}
+
+void blinkSelectedCurrentFineAdjustment(int16_t x0, int16_t y0) {
+  int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
+  int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT;
+  int16_t x2 = x1 + 40;
+  if (selected_state == CURRENT_FINE_ADJUSTMENT_STATE) {
+    if (blink) {
+      drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+      drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
+    } else {
+      drawSelectedArrow(x0, y0, SELECTED_COLOR);
+      drawSelectedLine(x1, y1, x2, TEXT_COLOR);
+    }
+  } else {
+    drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+    drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
+  }
+}
+
+void drawTempCoarseAndFineTextIndicator(int16_t x0, int16_t y0, uint16_t color) {
+  int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
+  int16_t y1 = y0 + SCREEN_MARGINS;
+
+  drawText(x1, y1, "Coarse A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
+  
+  int16_t x3 = x1 + 55 + (SCREEN_MARGINS * 2);
+  int16_t x4 = x3 + (SCREEN_MARGINS * 1.5);
+  drawText(x4, y1, "Fine A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
+  
+  blinkSelectedTempCoarseAdjustment(x0, y1);
+  blinkSelectedTempFineAdjustment(x3, y1);
+}
+
+void blinkSelectedTempCoarseAdjustment(int16_t x0, int16_t y0) {
+  int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
+  int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT;
+  int16_t x2 = x1 + 55;
+  if (selected_state == TEMP_COARSE_ADJUSTMENT_STATE) {
+    if (blink) {
+      drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+      drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
+    } else {
+      drawSelectedArrow(x0, y0, SELECTED_COLOR);
+      drawSelectedLine(x1, y1, x2, TEXT_COLOR);
+    }
+  } else {
+    drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+    drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
+  }
+}
+
+void blinkSelectedTempFineAdjustment(int16_t x0, int16_t y0) {
+  int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
+  int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT;
+  int16_t x2 = x1 + 40;
+  if (selected_state == TEMP_FINE_ADJUSTMENT_STATE) {
+    if (blink) {
+      drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+      drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
+    } else {
+      drawSelectedArrow(x0, y0, SELECTED_COLOR);
+      drawSelectedLine(x1, y1, x2, TEXT_COLOR);
+    }
+  } else {
+    drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
+    drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
   }
 }
 
@@ -270,12 +390,15 @@ void drawTempInterface(bool firstDraw, bool reedraw) {
   int16_t r = (3 * SCREEN_WIDTH / 16) - (SCREEN_MARGINS * 2);
   int16_t y0 = SCREEN_MARGINS + LARGE_TEXT_FONT_HEIGHT * 1.5 + r;
   if (firstDraw) {
-    drawTitle((5 * SCREEN_WIDTH / 8) + 17, SCREEN_MARGINS, "Temperatura");
+    drawTitle((5 * SCREEN_WIDTH / 8) + 17, SCREEN_MARGINS, "Temperature");
     display.drawCircle(x0, y0, r, TEXT_COLOR);
   }
+
+  drawTempCoarseAndFineTextIndicator((x0-r-SCREEN_MARGINS), (y0+r), TEXT_COLOR);
+
   if (reedraw) {
     int16_t r1 = r + SCREEN_MARGINS;
-    ringMeter(selected_diodo.getTempValue(), selected_diodo.getMinTempValue(), selected_diodo.getMaxTempValue(), x0-r1, y0-r1, r1, "C", GREEN2RED, FINE_TEMP_DIGITS_RESOLUTION);
+    ringMeter(diodoList[selected_diodo_index].getTempValue(), diodoList[selected_diodo_index].getMinTempValue(), diodoList[selected_diodo_index].getMaxTempValue(), x0-r1, y0-r1, r1, "C", GREEN2RED, FINE_TEMP_DIGITS_RESOLUTION);
     reedrawTemp = false;
   }
 }
@@ -295,10 +418,15 @@ void encoderButtonClicked() {
   if (selected_state > TEMP_FINE_ADJUSTMENT_STATE) {
     selected_state = NO_SELECTION_STATE;
   }
-  executeSelectedStateActionBySelectedStateValue();
+  blinkCount = 0;
+  blink = false;
+  reedrawDiode = true;
+  reedrawCurrent = true;
+  reedrawTemp = true;
+  blinkSelectedStateActionBySelectedStateValue();
 }
 
-void executeSelectedStateActionBySelectedStateValue() {
+void blinkSelectedStateActionBySelectedStateValue() {
   Serial.println("SELECTED_STATE: ");
   switch (selected_state) {
     case DIODO_SELECTION_STATE:
@@ -324,6 +452,14 @@ void executeSelectedStateActionBySelectedStateValue() {
 
 void selectedValueChangeHandler() {
   if (selected_state != NO_SELECTION_STATE) {
+    blinkCount++; 
+    if (blinkCount >= (blinkCycles*2)) {
+      blinkCount = 0;
+      blink = false;
+    } else if (blinkCount >= blinkCycles) {
+      blink = true;
+    }
+
     switch (selected_state) {
       case DIODO_SELECTION_STATE:
         diodeSelectorSelected();
@@ -356,9 +492,10 @@ void diodeSelectorSelected() {
     } else if (index <= -1) {
       index = diodeListSize - 1;
     }
-    updateCurrentAndTempValuesFromSelectedDiodeIndex(index);
+    selected_diodo_index = index;
+    reedrawDiode = true;
     Serial.print("Selected Diodo: ");
-    Serial.println(selected_diodo.getName());
+    Serial.println(diodoList[selected_diodo_index].getName());
   }
 }
 
@@ -381,18 +518,18 @@ void changeFineCurrentSelected() {
 }
 
 void increaseCurrentByValue(float increaseValue) {
-  Serial.print("Increase Value: ");
+  Serial.print("Increase Current Value: ");
   Serial.println(increaseValue);
-  float value = selected_diodo.getCurrentValue() + increaseValue;
-  if (value >= selected_diodo.getMaxCurrentValue()) {
-    value = selected_diodo.getMaxCurrentValue();
-  } else if (value <= selected_diodo.getMinCurrentValue()) {
-    value = selected_diodo.getMinCurrentValue();
+  float value = diodoList[selected_diodo_index].getCurrentValue() + increaseValue;
+  if (value >= diodoList[selected_diodo_index].getMaxCurrentValue()) {
+    value = diodoList[selected_diodo_index].getMaxCurrentValue();
+  } else if (value <= diodoList[selected_diodo_index].getMinCurrentValue()) {
+    value = diodoList[selected_diodo_index].getMinCurrentValue();
   }
-  selected_diodo.setCurrentValue(value);
+  diodoList[selected_diodo_index].setCurrentValue(value);
   reedrawCurrent = true;
   Serial.print("Current Value: ");
-  Serial.println(selected_diodo.getCurrentValue());
+  Serial.println(diodoList[selected_diodo_index].getCurrentValue());
 }
 
 void changeCoarseTempSelected() {
@@ -414,18 +551,18 @@ void changeFineTempSelected() {
 }
 
 void increaseTempByValue(float increaseValue) {
-  Serial.print("Increase Value: ");
+  Serial.print("Increase Temp Value: ");
   Serial.println(increaseValue);
-  float value = selected_diodo.getTempValue() + increaseValue;
-  if (value >= selected_diodo.getMaxTempValue()) {
-    value = selected_diodo.getMaxTempValue();
-  } else if (value <= selected_diodo.getMinTempValue()) {
-    value = selected_diodo.getMinTempValue();
+  float value = diodoList[selected_diodo_index].getTempValue() + increaseValue;
+  if (value >= diodoList[selected_diodo_index].getMaxTempValue()) {
+    value = diodoList[selected_diodo_index].getMaxTempValue();
+  } else if (value <= diodoList[selected_diodo_index].getMinTempValue()) {
+    value = diodoList[selected_diodo_index].getMinTempValue();
   }
-  selected_diodo.setTempValue(value);
+  diodoList[selected_diodo_index].setTempValue(value);
   reedrawTemp = true;
   Serial.print("Temp Value: ");
-  Serial.println(selected_diodo.getTempValue());
+  Serial.println(diodoList[selected_diodo_index].getTempValue());
 }
 
 // #########################################################################

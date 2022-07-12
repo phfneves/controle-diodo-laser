@@ -111,6 +111,8 @@ Diodo diodoList[] = {
 };
 int8_t diodeListSize;
 int8_t selected_diodo_index;
+bool currentOvershoot = false;
+bool tempOvershoot = true;
 
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 320
@@ -283,13 +285,15 @@ void drawCurrentInterface(bool firstDraw, bool reedraw) {
     ringMeter(diodoList[selected_diodo_index].getCurrentValue(), diodoList[selected_diodo_index].getMinCurrentValue(), diodoList[selected_diodo_index].getMaxCurrentValue(), x0-r1, y0-r1, r1, " mA", GREEN2RED, FINE_CURRENT_DIGITS_RESOLUTION);
     reedrawCurrent = false;
   }
+
+  drawCurrentOvershootIndicator(x0, (y0+r+MEDIUM_TEXT_FONT_HEIGHT+(4*SCREEN_MARGINS)));
 }
 
 void drawCurrentCoarseAndFineTextIndicator(int16_t x0, int16_t y0, uint16_t color) {
   int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
   int16_t y1 = y0 + SCREEN_MARGINS;
 
-  drawText(x1, y1, "Coarse A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
+  drawText(x1, y1, "Coarse A.", TEXT_COLOR, MEDIUM_TEXT_FONT);
   
   int16_t x3 = x1 + 55 + (SCREEN_MARGINS * 2);
   int16_t x4 = x3 + (SCREEN_MARGINS * 1.5);
@@ -333,6 +337,27 @@ void blinkSelectedCurrentFineAdjustment(int16_t x0, int16_t y0) {
     drawSelectedArrow(x0, y0, BACKGROUND_COLOR);
     drawSelectedLine(x1, y1, x2, BACKGROUND_COLOR);
   }
+}
+
+void drawCurrentOvershootIndicator(int16_t x0, int16_t y0) {
+  display.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
+
+  display.drawCentreString("Running State:", x0, y0-(MEDIUM_TEXT_FONT_HEIGHT/2), MEDIUM_TEXT_FONT); // Value in middle
+
+  uint16_t color = TFT_GREEN;
+  char* text = "On Target";
+  if (currentOvershoot) {
+    color = TFT_RED;
+    text = "Overshoot";
+  }
+
+  int16_t r = SCREEN_MARGINS*1.5;
+  int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT + r;
+  display.fillCircle(x0, y1, r, color);
+
+  
+  int16_t y2 = y1 + r + SCREEN_MARGINS;
+  display.drawCentreString(text, x0, y2, MEDIUM_TEXT_FONT);
 }
 
 void drawTempCoarseAndFineTextIndicator(int16_t x0, int16_t y0, uint16_t color) {
@@ -401,6 +426,29 @@ void drawTempInterface(bool firstDraw, bool reedraw) {
     ringMeter(diodoList[selected_diodo_index].getTempValue(), diodoList[selected_diodo_index].getMinTempValue(), diodoList[selected_diodo_index].getMaxTempValue(), x0-r1, y0-r1, r1, "C", GREEN2RED, FINE_TEMP_DIGITS_RESOLUTION);
     reedrawTemp = false;
   }
+  
+  drawTempOvershootIndicator(x0, (y0+r+MEDIUM_TEXT_FONT_HEIGHT+(4*SCREEN_MARGINS)));
+}
+
+void drawTempOvershootIndicator(int16_t x0, int16_t y0) {
+  display.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
+
+  display.drawCentreString("Running State:", x0, y0-(MEDIUM_TEXT_FONT_HEIGHT/2), MEDIUM_TEXT_FONT); // Value in middle
+
+  uint16_t color = TFT_GREEN;
+  char* text = "On Target";
+  if (tempOvershoot) {
+    color = TFT_RED;
+    text = "Overshoot";
+  }
+
+  int16_t r = SCREEN_MARGINS*1.5;
+  int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT + r;
+  display.fillCircle(x0, y1, r, color);
+
+  
+  int16_t y2 = y1 + r + SCREEN_MARGINS;
+  display.drawCentreString(text, x0, y2, MEDIUM_TEXT_FONT);
 }
 
 void setEncoderButtonClickedHandler() {
@@ -423,31 +471,6 @@ void encoderButtonClicked() {
   reedrawDiode = true;
   reedrawCurrent = true;
   reedrawTemp = true;
-  blinkSelectedStateActionBySelectedStateValue();
-}
-
-void blinkSelectedStateActionBySelectedStateValue() {
-  Serial.println("SELECTED_STATE: ");
-  switch (selected_state) {
-    case DIODO_SELECTION_STATE:
-      Serial.println("DIODO_SELECTION_STATE");
-      break;
-    case CURRENT_COARSE_ADJUSTMENT_STATE:
-      Serial.println("CURRENT_COARSE_ADJUSTMENT_STATE");
-      break;
-    case CURRENT_FINE_ADJUSTMENT_STATE:
-      Serial.println("CURRENT_FINE_ADJUSTMENT_STATE");
-      break;
-    case TEMP_COARSE_ADJUSTMENT_STATE:
-      Serial.println("TEMP_COARSE_ADJUSTMENT_STATE");
-      break;
-    case TEMP_FINE_ADJUSTMENT_STATE:
-      Serial.println("TEMP_FINE_ADJUSTMENT_STATE");
-      break;
-    default:
-      Serial.println("NO_SELECTION_STATE");
-      break;
-  }
 }
 
 void selectedValueChangeHandler() {
@@ -484,7 +507,7 @@ void selectedValueChangeHandler() {
 }
 
 void diodeSelectorSelected() {
-  int16_t increaseValue = encoder->getValue();
+  int16_t increaseValue = -encoder->getValue();
   if (increaseValue != 0) {
     int8_t index = selected_diodo_index + increaseValue;
     if (index >= diodeListSize) {
@@ -500,7 +523,7 @@ void diodeSelectorSelected() {
 }
 
 void changeCoarseCurrentSelected() {
-  int16_t increaseValue = encoder->getValue();
+  int16_t increaseValue = -encoder->getValue();
   if (increaseValue > 0) {
     increaseCurrentByValue(1);
   } else if (increaseValue < 0) {
@@ -509,7 +532,7 @@ void changeCoarseCurrentSelected() {
 }
 
 void changeFineCurrentSelected() {
-  int16_t increaseValue = encoder->getValue();
+  int16_t increaseValue = -encoder->getValue();
   if (increaseValue > 0) {
     increaseCurrentByValue(pow(10, -FINE_CURRENT_DIGITS_RESOLUTION));
   } else if (increaseValue < 0) {
@@ -533,7 +556,7 @@ void increaseCurrentByValue(float increaseValue) {
 }
 
 void changeCoarseTempSelected() {
-  int16_t increaseValue = encoder->getValue();
+  int16_t increaseValue = -encoder->getValue();
   if (increaseValue > 0) {
     increaseTempByValue(1);
   } else if (increaseValue < 0) {
@@ -542,7 +565,7 @@ void changeCoarseTempSelected() {
 }
 
 void changeFineTempSelected() {
-  int16_t increaseValue = encoder->getValue();
+  int16_t increaseValue = -encoder->getValue();
   if (increaseValue > 0) {
     increaseTempByValue(pow(10, -FINE_TEMP_DIGITS_RESOLUTION));
   } else if (increaseValue < 0) {
@@ -656,8 +679,7 @@ int ringMeter(float value, float vmin, float vmax, int x, int y, int r, char *un
 // #########################################################################
 // Return a 16 bit rainbow colour
 // #########################################################################
-unsigned int rainbow(byte value)
-{
+unsigned int rainbow(byte value) {
   // Value is expected to be in range 0-127
   // The value is converted to a spectrum colour from 0 = blue through to 127 = red
 

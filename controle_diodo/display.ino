@@ -1,73 +1,73 @@
 #include <TFT_HX8357.h>  // Hardware-specific library
 #include <ClickEncoder.h>
-#include <TimerOne.h>
 #include <math.h>
+#include <TimerOne.h>
 
 class Diodo {
-private:
-  char* name;
+  private:
+    char* name;
 
-private:
-  float maxCurrent, minCurrent, maxTemp, minTemp, currentValue, tempValue;
+  private:
+    float maxCurrent, minCurrent, maxTemp, minTemp, currentValue, tempValue;
 
-public:
-  Diodo() {}
+  public:
+    Diodo() {}
 
-public:
-  Diodo(char* name, float maxCurrent, float minCurrent, float maxTemp, float minTemp, float currentValue, float tempValue) {
-    this->name = name;
-    this->maxCurrent = maxCurrent;
-    this->minCurrent = minCurrent;
-    this->maxTemp = maxTemp;
-    this->minTemp = minTemp;
-    this->currentValue = currentValue;
-    this->tempValue = tempValue;
-  }
+  public:
+    Diodo(char* name, float maxCurrent, float minCurrent, float maxTemp, float minTemp, float currentValue, float tempValue) {
+      this->name = name;
+      this->maxCurrent = maxCurrent;
+      this->minCurrent = minCurrent;
+      this->maxTemp = maxTemp;
+      this->minTemp = minTemp;
+      this->currentValue = currentValue;
+      this->tempValue = tempValue;
+    }
 
-public:
-  char* getName() {
-    return this->name;
-  }
+  public:
+    char* getName() {
+      return this->name;
+    }
 
-public:
-  float getMaxCurrentValue() {
-    return this->maxCurrent;
-  }
+  public:
+    float getMaxCurrentValue() {
+      return this->maxCurrent;
+    }
 
-public:
-  float getMinCurrentValue() {
-    return this->minCurrent;
-  }
+  public:
+    float getMinCurrentValue() {
+      return this->minCurrent;
+    }
 
-public:
-  float getMaxTempValue() {
-    return this->maxTemp;
-  }
+  public:
+    float getMaxTempValue() {
+      return this->maxTemp;
+    }
 
-public:
-  float getMinTempValue() {
-    return this->minTemp;
-  }
+  public:
+    float getMinTempValue() {
+      return this->minTemp;
+    }
 
-public:
-  float getCurrentValue() {
-    return this->currentValue;
-  }
+  public:
+    float getCurrentValue() {
+      return this->currentValue;
+    }
 
-public:
-  float getTempValue() {
-    return this->tempValue;
-  }
+  public:
+    float getTempValue() {
+      return this->tempValue;
+    }
 
-public:
-  float setCurrentValue(float currentValue) {
-    this->currentValue = currentValue;
-  }
+  public:
+    float setCurrentValue(float currentValue) {
+      this->currentValue = currentValue;
+    }
 
-public:
-  float setTempValue(float tempValue) {
-    this->tempValue = tempValue;
-  }
+  public:
+    float setTempValue(float tempValue) {
+      this->tempValue = tempValue;
+    }
 };
 
 ClickEncoder *encoder;
@@ -152,6 +152,7 @@ void setupVariables() {
   diodeListSize = sizeof(diodoList) / sizeof(diodoList[0]);
 }
 
+
 void timerIsr() {
   encoder->service();
 }
@@ -160,15 +161,16 @@ void loopDisplay() {
   setEncoderButtonClickedHandler();
   selectedValueChangeHandler();
   drawInterface();
+  updateIndicators(&currentOvershoot, &tempOvershoot);
 }
 
 
 float readTRef() {
-    return diodoList[selected_diodo_index].getTempValue();
+  return diodoList[selected_diodo_index].getTempValue();
 }
 
 float readIRef() {
-    return diodoList[selected_diodo_index].getCurrentValue();
+  return diodoList[selected_diodo_index].getCurrentValue();
 }
 
 void drawInterface() {
@@ -186,9 +188,9 @@ void drawDiodeList(bool firstDraw, bool reedraw) {
   if (firstDraw) {
     drawTitle(25, SCREEN_MARGINS, "Diode");
   }
-  
+
   blinkSelectedDiode();
-  
+
   if (reedraw) {
     clearDiodeListBackground();
     for (int i = 0; i < diodeListSize; i++) {
@@ -267,15 +269,15 @@ void drawCurrentInterface(bool firstDraw, bool reedraw) {
     display.drawCircle(x0, y0, r, TEXT_COLOR);
   }
 
-  drawCurrentCoarseAndFineTextIndicator((x0-r-SCREEN_MARGINS), (y0+r), TEXT_COLOR);
+  drawCurrentCoarseAndFineTextIndicator((x0 - r - SCREEN_MARGINS), (y0 + r), TEXT_COLOR);
 
   if (reedraw) {
     int16_t r1 = r + SCREEN_MARGINS;
-    ringMeter(diodoList[selected_diodo_index].getCurrentValue(), diodoList[selected_diodo_index].getMinCurrentValue(), diodoList[selected_diodo_index].getMaxCurrentValue(), x0-r1, y0-r1, r1, " mA", GREEN2RED, FINE_CURRENT_DIGITS_RESOLUTION);
+    ringMeter(diodoList[selected_diodo_index].getCurrentValue(), diodoList[selected_diodo_index].getMinCurrentValue(), diodoList[selected_diodo_index].getMaxCurrentValue(), x0 - r1, y0 - r1, r1, " mA", GREEN2RED, FINE_CURRENT_DIGITS_RESOLUTION);
     reedrawCurrent = false;
   }
 
-  drawCurrentOvershootIndicator(x0, (y0+r+MEDIUM_TEXT_FONT_HEIGHT+(4*SCREEN_MARGINS)));
+  drawCurrentOvershootIndicator(x0, (y0 + r + MEDIUM_TEXT_FONT_HEIGHT + (4 * SCREEN_MARGINS)));
 }
 
 void drawCurrentCoarseAndFineTextIndicator(int16_t x0, int16_t y0, uint16_t color) {
@@ -283,10 +285,10 @@ void drawCurrentCoarseAndFineTextIndicator(int16_t x0, int16_t y0, uint16_t colo
   int16_t y1 = y0 + SCREEN_MARGINS;
 
   drawText(x1, y1, "Coarse A.", TEXT_COLOR, MEDIUM_TEXT_FONT);
-  
+
   int16_t x3 = x1 + 55 + (SCREEN_MARGINS * 2);
   int16_t x4 = x3 + (SCREEN_MARGINS * 1.5);
-  drawText(x4, y1, "Fine A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
+  drawText(x4, y1, "Fine A.", TEXT_COLOR, MEDIUM_TEXT_FONT);
 
   blinkSelectedCurrentCoarseAdjustment(x0, y1);
   blinkSelectedCurrentFineAdjustment(x3, y1);
@@ -331,7 +333,7 @@ void blinkSelectedCurrentFineAdjustment(int16_t x0, int16_t y0) {
 void drawCurrentOvershootIndicator(int16_t x0, int16_t y0) {
   display.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
 
-  display.drawCentreString("Running State:", x0, y0-(MEDIUM_TEXT_FONT_HEIGHT/2), MEDIUM_TEXT_FONT); // Value in middle
+  display.drawCentreString("Running State:", x0, y0 - (MEDIUM_TEXT_FONT_HEIGHT / 2), MEDIUM_TEXT_FONT); // Value in middle
 
   uint16_t color = TFT_GREEN;
   char* text = "On Target";
@@ -340,11 +342,11 @@ void drawCurrentOvershootIndicator(int16_t x0, int16_t y0) {
     text = "Overshoot";
   }
 
-  int16_t r = SCREEN_MARGINS*1.5;
+  int16_t r = SCREEN_MARGINS * 1.5;
   int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT + r;
   display.fillCircle(x0, y1, r, color);
 
-  
+
   int16_t y2 = y1 + r + SCREEN_MARGINS;
   display.drawCentreString(text, x0, y2, MEDIUM_TEXT_FONT);
 }
@@ -353,12 +355,12 @@ void drawTempCoarseAndFineTextIndicator(int16_t x0, int16_t y0, uint16_t color) 
   int16_t x1 = x0 + (SCREEN_MARGINS * 1.5);
   int16_t y1 = y0 + SCREEN_MARGINS;
 
-  drawText(x1, y1, "Coarse A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
-  
+  drawText(x1, y1, "Coarse A.", TEXT_COLOR, MEDIUM_TEXT_FONT);
+
   int16_t x3 = x1 + 55 + (SCREEN_MARGINS * 2);
   int16_t x4 = x3 + (SCREEN_MARGINS * 1.5);
-  drawText(x4, y1, "Fine A.", TEXT_COLOR, MEDIUM_TEXT_FONT);  
-  
+  drawText(x4, y1, "Fine A.", TEXT_COLOR, MEDIUM_TEXT_FONT);
+
   blinkSelectedTempCoarseAdjustment(x0, y1);
   blinkSelectedTempFineAdjustment(x3, y1);
 }
@@ -408,21 +410,21 @@ void drawTempInterface(bool firstDraw, bool reedraw) {
     display.drawCircle(x0, y0, r, TEXT_COLOR);
   }
 
-  drawTempCoarseAndFineTextIndicator((x0-r-SCREEN_MARGINS), (y0+r), TEXT_COLOR);
+  drawTempCoarseAndFineTextIndicator((x0 - r - SCREEN_MARGINS), (y0 + r), TEXT_COLOR);
 
   if (reedraw) {
     int16_t r1 = r + SCREEN_MARGINS;
-    ringMeter(diodoList[selected_diodo_index].getTempValue(), diodoList[selected_diodo_index].getMinTempValue(), diodoList[selected_diodo_index].getMaxTempValue(), x0-r1, y0-r1, r1, "C", GREEN2RED, FINE_TEMP_DIGITS_RESOLUTION);
+    ringMeter(diodoList[selected_diodo_index].getTempValue(), diodoList[selected_diodo_index].getMinTempValue(), diodoList[selected_diodo_index].getMaxTempValue(), x0 - r1, y0 - r1, r1, "C", GREEN2RED, FINE_TEMP_DIGITS_RESOLUTION);
     reedrawTemp = false;
   }
-  
-  drawTempOvershootIndicator(x0, (y0+r+MEDIUM_TEXT_FONT_HEIGHT+(4*SCREEN_MARGINS)));
+
+  drawTempOvershootIndicator(x0, (y0 + r + MEDIUM_TEXT_FONT_HEIGHT + (4 * SCREEN_MARGINS)));
 }
 
 void drawTempOvershootIndicator(int16_t x0, int16_t y0) {
   display.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
 
-  display.drawCentreString("Running State:", x0, y0-(MEDIUM_TEXT_FONT_HEIGHT/2), MEDIUM_TEXT_FONT); // Value in middle
+  display.drawCentreString("Running State:", x0, y0 - (MEDIUM_TEXT_FONT_HEIGHT / 2), MEDIUM_TEXT_FONT); // Value in middle
 
   uint16_t color = TFT_GREEN;
   char* text = "On Target";
@@ -431,11 +433,11 @@ void drawTempOvershootIndicator(int16_t x0, int16_t y0) {
     text = "Overshoot";
   }
 
-  int16_t r = SCREEN_MARGINS*1.5;
+  int16_t r = SCREEN_MARGINS * 1.5;
   int16_t y1 = y0 + MEDIUM_TEXT_FONT_HEIGHT + r;
   display.fillCircle(x0, y1, r, color);
 
-  
+
   int16_t y2 = y1 + r + SCREEN_MARGINS;
   display.drawCentreString(text, x0, y2, MEDIUM_TEXT_FONT);
 }
@@ -464,8 +466,8 @@ void encoderButtonClicked() {
 
 void selectedValueChangeHandler() {
   if (selected_state != NO_SELECTION_STATE) {
-    blinkCount++; 
-    if (blinkCount >= (blinkCycles*2)) {
+    blinkCount++;
+    if (blinkCount >= (blinkCycles * 2)) {
       blinkCount = 0;
       blink = false;
     } else if (blinkCount >= blinkCycles) {
@@ -600,7 +602,7 @@ int ringMeter(float value, float vmin, float vmax, int x, int y, int r, char *un
   int colour = HX8357_BLUE;
 
   // Draw colour blocks every inc degrees
-  for (int i = -angle+inc/2; i < angle-inc/2; i += inc) {
+  for (int i = -angle + inc / 2; i < angle - inc / 2; i += inc) {
     // Calculate pair of coordinates for segment start
     float sx = cos((i - 90) * 0.0174532925);
     float sy = sin((i - 90) * 0.0174532925);
@@ -637,7 +639,7 @@ int ringMeter(float value, float vmin, float vmax, int x, int y, int r, char *un
       display.fillTriangle(x1, y1, x2, y2, x3, y3, HX8357_GREY);
     }
   }
-  
+
   display.fillCircle(x, y, r - SCREEN_MARGINS - 1, BACKGROUND_COLOR);
 
   // Convert value to a string
@@ -653,13 +655,13 @@ int ringMeter(float value, float vmin, float vmax, int x, int y, int r, char *un
   // Print value, if the meter is large then use big font 8, othewise use 4
   // display.drawCentreString(buf, x, y, LARGE_TEXT_FONT);
   display.setTextPadding(3 * 14); // Allow for 3 digits each 14 pixels wide
-  display.drawCentreString(buf, x, y-(LARGE_TEXT_FONT_HEIGHT/2), LARGE_TEXT_FONT); // Value in middle
+  display.drawCentreString(buf, x, y - (LARGE_TEXT_FONT_HEIGHT / 2), LARGE_TEXT_FONT); // Value in middle
 
   display.setTextSize(1);
   display.setTextPadding(0);
   // Print units, if the meter is large then use big font 4, othewise use 2
   display.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-  display.drawCentreString(units, x, y+(LARGE_TEXT_FONT_HEIGHT/2), MEDIUM_TEXT_FONT); // Units display
+  display.drawCentreString(units, x, y + (LARGE_TEXT_FONT_HEIGHT / 2), MEDIUM_TEXT_FONT); // Units display
   // Calculate and return right hand side x coordinate
   return x + r;
 }

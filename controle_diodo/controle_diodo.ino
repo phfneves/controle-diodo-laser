@@ -1,8 +1,4 @@
-#include <TFT_HX8357.h>  // Hardware-specific library
-#include <ClickEncoder.h>
-#include <TimerOne.h>
 #include <math.h>
-#include <TimerThree.h>
 #include "converter_defs.h"
 
 //void initInterrupt() {
@@ -27,16 +23,44 @@ void setup() {
   Serial.begin(9600);
   setupDisplay();
   initConverters();
-  Timer3.initialize(1000000);
-  
-  //initInterrupt();
 }
+
+
 
 void loop() {
   loopDisplay();
+  float Vin = computeIControl(readIRef());
+  float VCTLI = computeTControl(readTRef());
+  Serial.print(readTRef());
+  Serial.print(",");
+  Serial.print(readIRef());
+  Serial.print(",");
+  Serial.print(VCTLI);
+  Serial.print(",");
+  Serial.print(Vin);
+  Serial.print(",");
+  Serial.print(getCurrent());
+  Serial.print(",");
+  Serial.println(getTemperature());
 }
 
-//ISR(TIMER4_COMPA_vect){
-//
-// Serial.println(getTemperature());
-//}
+void updateIndicators(bool *currentOvershoot, bool *tempOvershoot){
+  float I = getCurrent();
+  float T = getTemperature();
+  float IRef = readIRef();
+  float TRef = readTRef();
+
+  float Ierror = I - IRef;
+  float Terror = T - TRef;
+  
+  if (abs(Ierror) >= 0.05*IRef)
+    *currentOvershoot = true;
+  else
+    *currentOvershoot = false;
+
+  if (abs(Terror) >= 0.05*TRef)
+    *tempOvershoot = true;
+  else
+    *tempOvershoot = false;
+
+}

@@ -18,11 +18,11 @@ const int32_t ADC_16BIT_MAX = 65535;
 
 const float DAC_INPUT_RANGE = 5.0;
 const float DAC_BIT_VOLTAGE = DAC_INPUT_RANGE / (DAC_12BIT_MAX + 1);
-const float T_DAC_X0 = 2457;  // 3.0V on CTLI port
-const float I_DAC_X0 = DAC_12BIT_MAX/2;
+const float T_DAC_X0 = 2458;  // 3.0V on CTLI port
+const float I_DAC_X0 = 0;
 
 const float ADC_INPUT_RANGE = 6.144;
-const double ADC_BIT_VOLTAGE = 2*ADC_INPUT_RANGE / (ADC_16BIT_MAX + 1);  // V/bit
+const double ADC_BIT_VOLTAGE = 2*ADC_INPUT_RANGE / (ADC_16BIT_MAX);  // V/bit
 
 // I reading constant
 const float I_SENSE_GAIN = 1000*((10.0/100.0)/1.8); // V -> mA

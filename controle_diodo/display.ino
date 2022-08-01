@@ -162,6 +162,15 @@ void loopDisplay() {
   drawInterface();
 }
 
+
+float readTRef() {
+    return diodoList[selected_diodo_index].getTempValue();
+}
+
+float readIRef() {
+    return diodoList[selected_diodo_index].getCurrentValue();
+}
+
 void drawInterface() {
   if (firstDraw) {
     display.fillScreen(BACKGROUND_COLOR);
@@ -434,7 +443,7 @@ void drawTempOvershootIndicator(int16_t x0, int16_t y0) {
 void setEncoderButtonClickedHandler() {
   ClickEncoder::Button b = encoder->getButton();
   if (b != ClickEncoder::Open) {
-    Serial.print("Button: ");
+    //Serial.print("Button: ");
     if (b == ClickEncoder::Clicked) {
       encoderButtonClicked();
     }
@@ -480,7 +489,7 @@ void selectedValueChangeHandler() {
         changeFineTempSelected();
         break;
       default:
-        Serial.println("NO_SELECTION_STATE");
+        //Serial.println("NO_SELECTION_STATE");
         break;
     }
   }
@@ -497,8 +506,8 @@ void diodeSelectorSelected() {
     }
     selected_diodo_index = index;
     reedrawDiode = true;
-    Serial.print("Selected Diodo: ");
-    Serial.println(diodoList[selected_diodo_index].getName());
+    //Serial.print("Selected Diodo: ");
+    //Serial.println(diodoList[selected_diodo_index].getName());
   }
 }
 
@@ -521,8 +530,8 @@ void changeFineCurrentSelected() {
 }
 
 void increaseCurrentByValue(float increaseValue) {
-  Serial.print("Increase Current Value: ");
-  Serial.println(increaseValue);
+  //Serial.print("Increase Current Value: ");
+  //Serial.println(increaseValue);
   float value = diodoList[selected_diodo_index].getCurrentValue() + increaseValue;
   if (value >= diodoList[selected_diodo_index].getMaxCurrentValue()) {
     value = diodoList[selected_diodo_index].getMaxCurrentValue();
@@ -531,8 +540,8 @@ void increaseCurrentByValue(float increaseValue) {
   }
   diodoList[selected_diodo_index].setCurrentValue(value);
   reedrawCurrent = true;
-  Serial.print("Current Value: ");
-  Serial.println(diodoList[selected_diodo_index].getCurrentValue());
+  //Serial.print("Current Value: ");
+  //Serial.println(diodoList[selected_diodo_index].getCurrentValue());
 }
 
 void changeCoarseTempSelected() {
@@ -554,8 +563,8 @@ void changeFineTempSelected() {
 }
 
 void increaseTempByValue(float increaseValue) {
-  Serial.print("Increase Temp Value: ");
-  Serial.println(increaseValue);
+  //Serial.print("Increase Temp Value: ");
+  //Serial.println(increaseValue);
   float value = diodoList[selected_diodo_index].getTempValue() + increaseValue;
   if (value >= diodoList[selected_diodo_index].getMaxTempValue()) {
     value = diodoList[selected_diodo_index].getMaxTempValue();
@@ -564,8 +573,8 @@ void increaseTempByValue(float increaseValue) {
   }
   diodoList[selected_diodo_index].setTempValue(value);
   reedrawTemp = true;
-  Serial.print("Temp Value: ");
-  Serial.println(diodoList[selected_diodo_index].getTempValue());
+  //Serial.print("Temp Value: ");
+  //Serial.println(diodoList[selected_diodo_index].getTempValue());
 }
 
 // #########################################################################
